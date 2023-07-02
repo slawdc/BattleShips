@@ -9,15 +9,9 @@ namespace BattleShips
 {
     internal abstract class Player
     {
-        public abstract int Shoot();
-
-        public abstract void SetShips();
-
-        public abstract List<Ship> GetReferencesToMyShips();
-
-        public abstract GameBoard GetReferencesToMyGameBoard();
-
-        public abstract bool CheckIFGameOver();
+        public abstract int PlayerID { get; }
+        public abstract Coordinates Shoot();
+        public abstract void SetShip(Ship ship, ref GameBoard gameBoard);
 
     }
 }

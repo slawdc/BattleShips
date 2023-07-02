@@ -1,60 +1,98 @@
-﻿namespace BattleShips
+﻿using System.Collections.Generic;
+
+namespace BattleShips
 {
     internal class GameBoard
     {
-        private int[,] _arrayboard;
+        private Coordinates[,] _arrayboard;
+        private List<Ship> _listOfShips;
 
-        public GameBoard(int nrOfRows, int nrOfColumns)
+        public GameBoard()
         {
-            _arrayboard = new int[nrOfRows, nrOfColumns];
+            _listOfShips = new List<Ship>();
+
+            _arrayboard = new Coordinates[GameRules.GameBoardNrOfRows, GameRules.GameBoardNrOfColumns];
+
+            for (int i = 0; i < GameRules.GameBoardNrOfRows; i++)
+            {
+                for (int j = 0; j < GameRules.GameBoardNrOfColumns; j++)
+                {
+                    _arrayboard[i, j] = new Coordinates(i, j, 0);
+                }
+
+            }
         }
 
-        public int[,] GetArrayBoard()
+        public bool AreAllShipsDestroyed()
         {
-            return _arrayboard;
+            bool allShipDestroyed = true;
+
+            foreach (Ship ship in _listOfShips)
+            {
+                if (!ship.IsShipDestroyed())
+                {
+                    allShipDestroyed = false;
+                }
+            
+            }
+            return allShipDestroyed; 
         }
 
-        public int GetArrayBoardValue(int row, int column)
+        public int GetBoardNrOfRows()
+        {
+            return _arrayboard.GetLength(0);
+        }
+
+        public int GetBoardNrOfColumns()
+        {
+            return _arrayboard.GetLength(1);
+        }
+
+        public void AddShipToList(Ship ship)
+        {
+            _listOfShips.Add(ship);
+        }
+
+        public Coordinates GetBoardCoordiante(int row, int column)
         {
             return _arrayboard[row, column];
         }
 
-        public void SetArrayBoardValue(int row, int column, int value)
+        public int GetShipIdFromCoordinates(int row, int column)
         {
-            _arrayboard[row, column] = value;
+            return _arrayboard[row, column].ShipID;
         }
 
-        public void UpdateArrayBoard(int row, int column)
+        public void UpdateArrayBoardCoordinates(Coordinates coordinates)
         {
-            // if on field was ship (field value  = 1), set hit value =  2
-            if (_arrayboard[row, column] == 1)
-            {
-                _arrayboard[row, column] = 2;
-            }
-            // if field was empty set missed shoot
-            else if (_arrayboard[row, column] == 0)
-            {
-                _arrayboard[row, column] = 3;
-            }
+            _arrayboard[coordinates.Row, coordinates.Column] = coordinates;
         }
 
-        public void AddShipToBoard(int row, int column, int length, bool horizontal)
+        public int ShootTarget(Coordinates coordinates)
         {
-            if (horizontal)
+            int shoot = 0;
+
+            if (!_arrayboard[coordinates.Row, coordinates.Column].Destroyed && _arrayboard[coordinates.Row, coordinates.Column].ShipID > 0)
             {
-                for (int i = 0; i < length; i++)
+                shoot = 1;
+                _arrayboard[coordinates.Row, coordinates.Column].Destroyed = true;
+
+                foreach (Ship ship in _listOfShips)
                 {
-                    SetArrayBoardValue(row, column + i, 1);
+                    if (ship.ShipID == _arrayboard[coordinates.Row, coordinates.Column].ShipID && ship.IsShipDestroyed())
+                    {
+                        shoot = 2;
+                    }
+
                 }
+
             }
             else
             {
-                for (int i = 0; i < length; i++)
-                {
-                    SetArrayBoardValue(row + i, column, 1);
-                }
-
+                _arrayboard[coordinates.Row, coordinates.Column].Destroyed = true;
             }
+
+            return shoot;
 
         }
 

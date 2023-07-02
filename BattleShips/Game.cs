@@ -1,48 +1,106 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace BattleShips
 {
     internal class Game
     {
-        private ComputerPlayer _cpuPlayer;
+        private CPUPlayer _cpuPlayer;
         private HumanPlayer _humanPlayer;
 
-        private int _playerShoot;
-        private int _cpuShoot;
+        private GameBoard _humanGameboard;
+        private GameBoard _cpuGameboard;
+
+        private List<Ship> _cpuShips;
+        private List<Ship> _humanShips;
 
 
         public Game()
         {
-            _humanPlayer = new HumanPlayer();
-            _humanPlayer.SetShips();
+            _humanPlayer = new HumanPlayer(1);
+            _cpuPlayer = new CPUPlayer(2);
 
-            _cpuPlayer = new ComputerPlayer(_humanPlayer.GetReferencesToMyShips(), _humanPlayer.GetReferencesToMyGameBoard());
+            _humanGameboard = new GameBoard();
+            _cpuGameboard = new GameBoard();
 
-            _humanPlayer.SetReferencesToCpuShips(_cpuPlayer.GetReferencesToMyShips());
+            GameInit();
 
-            _humanPlayer.SetReferencesToCpuBoard(_cpuPlayer.GetReferencesToMyGameBoard());
+        }
+
+        private void GameInit()
+        {
+            _cpuShips = CreateListOFShips();
+            _humanShips = CreateListOFShips();
+
+            foreach (Ship ship in _cpuShips)
+            {
+                _cpuPlayer.SetShip(ship, ref _cpuGameboard);
+         
+            }
+
+            foreach (Ship ship in _humanShips)
+            {
+                _humanPlayer.SetShip(ship, ref _humanGameboard);
+                Console.WriteLine(String.Format("Your {0} was set properly on the board.", ship.ShipName));
+                DisplayGameBoard(_humanGameboard, true);
+            }
 
         }
 
         public void GameLoop()
         {
-           
+
             bool cpuWiner = false;
             bool gameOver = false;
-
+            int shoot;
+            Coordinates targetCoordinates;
 
             do
             {
-                gameOver = PlayerShoot();
+                do// player shoot until miss;
+                {
+
+                    Console.WriteLine("CPU GAMEBOARD");
+                    DisplayGameBoard(_cpuGameboard, false);
+
+                    targetCoordinates = _humanPlayer.Shoot();
+                   
+                    shoot = _cpuGameboard.ShootTarget(targetCoordinates);
+
+                    DisplayShootInformation(shoot, "You");
+
+
+                    if (_cpuGameboard.AreAllShipsDestroyed())
+                    {
+                        gameOver = true;
+
+                    }
+
+                } while (shoot > 0 ^ gameOver);
 
                 if (!gameOver)
                 {
-                    gameOver = CpuShoot();
-
-                    if (gameOver)
+                    do
                     {
-                        cpuWiner = true;
-                    }
+                        targetCoordinates = _cpuPlayer.Shoot();
+
+                        shoot = _humanGameboard.ShootTarget(targetCoordinates);
+
+                        Console.WriteLine("HUMAN GAMEBOARD");
+                        DisplayShootInformation(shoot, "Cpu");
+
+                        DisplayGameBoard(_humanGameboard, true);
+
+                        _cpuPlayer.UpdateCpuLogic(shoot, _humanGameboard.GetBoardCoordiante(targetCoordinates.Row, targetCoordinates.Column).ShipID, targetCoordinates);
+
+                        if (_humanGameboard.AreAllShipsDestroyed())
+                        {
+                            gameOver = true;
+                            cpuWiner = true;
+                        }
+
+                    } while (shoot > 0 ^ gameOver);
+
 
                 }
 
@@ -51,94 +109,35 @@ namespace BattleShips
 
             DisplayWinner(cpuWiner);
 
+
         }
 
-        private bool PlayerShoot()
+        private void DisplayShootInformation(int shoot, string who)
         {
-            bool gameOver = false;
-
-            Console.WriteLine("Cpu gameboard.");
-            DisplayGameBoard(_cpuPlayer.GetReferencesToMyGameBoard().GetArrayBoard(), false);
-
-            do
+            if (shoot == 0)
             {
-                _playerShoot = _humanPlayer.Shoot();
-
-                if (_playerShoot == 0)
-                {
-                    Console.WriteLine("You missed.");
-
-                }
-                else if (_playerShoot == 1)
-                {
-                    Console.WriteLine("You hit ship.");
-
-                }
-                else if (_playerShoot == 2)
-                {
-
-                    Console.WriteLine("You sunk cpu's ship.");
-                }
-                if (_humanPlayer.CheckIFGameOver())
-                {
-                    gameOver = true;
-                    
-                }
-
-              
-
-            } while (_playerShoot > 0 ^ gameOver);
-
-            return gameOver;
-
-        }
-
-        private bool CpuShoot()
-        {
-            bool gameOver = false;
-
-            //shoot till cpu hit target
-            do
+                Console.WriteLine(String.Format("{0} missed.", who));
+            }
+            else if (shoot == 1)
             {
-                Console.WriteLine("Cpu shoot.");
+                Console.WriteLine(String.Format("{0} hit ship.", who));
 
-                _cpuShoot = _cpuPlayer.Shoot();
+            }
+            else if (shoot == 2)
+            {
+                Console.WriteLine(String.Format("{0} sunk ship.", who));
+            }
 
-                if (_cpuShoot == 0)
-                {
-                    Console.WriteLine("Cpu missed.");
-                }
-                else if (_cpuShoot == 1)
-                {
-                    Console.WriteLine("Cpu hit your ship.");
-
-                }
-                else if (_cpuShoot == 2)
-                {
-                    Console.WriteLine("Cpu sunk your ship.");
-                }
-
-                if (_cpuPlayer.CheckIFGameOver())
-                {
-                    gameOver = true;
-                 
-                }
-
-                Console.WriteLine("Your gameboard.");
-
-                DisplayGameBoard(_humanPlayer.GetReferencesToMyGameBoard().GetArrayBoard(), true);
-
-            } while (_cpuShoot > 0 ^ gameOver);
-
-            return gameOver;
         }
 
-        public void DisplayGameBoard(int[,] arrayboard, bool displayShips)
+        public void DisplayGameBoard(GameBoard gameBoard, bool displayShips)
         {
+
             Console.WriteLine();
             Console.WriteLine("   A B C D E F G H I J");
 
-            for (int row = 0; row < arrayboard.GetLength(0); row++)
+
+            for (int row = 0; row < gameBoard.GetBoardNrOfRows(); row++)
             {
 
                 if (row == 9)
@@ -150,14 +149,18 @@ namespace BattleShips
                     Console.Write(row + 1 + "  ");
                 }
 
-                for (int column = 0; column < arrayboard.GetLength(1); column++)
+                for (int column = 0; column < gameBoard.GetBoardNrOfColumns(); column++)
                 {
-                    if (arrayboard[row, column] == 0)
+
+                    if (gameBoard.GetBoardCoordiante(row, column).ShipID == 0 && !gameBoard.GetBoardCoordiante(row, column).Destroyed)
                     {
                         Console.Write("  ");
-
                     }
-                    else if (arrayboard[row, column] == 1 )
+                    else if (gameBoard.GetBoardCoordiante(row, column).ShipID == 0 && gameBoard.GetBoardCoordiante(row, column).Destroyed)
+                    {
+                        Console.Write(". ");
+                    }
+                    else if (gameBoard.GetBoardCoordiante(row, column).ShipID > 0 && !gameBoard.GetBoardCoordiante(row, column).Destroyed)
                     {
                         if (displayShips)
                         {
@@ -167,17 +170,11 @@ namespace BattleShips
                         {
                             Console.Write("  ");
                         }
-                        
-                    }
-                    else if (arrayboard[row, column] == 2)
-                    {
 
+                    }
+                    else if (gameBoard.GetBoardCoordiante(row, column).ShipID > 0 && gameBoard.GetBoardCoordiante(row, column).Destroyed)
+                    {
                         Console.Write("X ");
-                    }
-                    else if (arrayboard[row, column] == 3)
-                    {
-
-                        Console.Write(". ");
                     }
 
                 }
@@ -187,13 +184,13 @@ namespace BattleShips
 
         }
 
-        private void DisplayWinner(bool wasCpuWiiner)
+        private void DisplayWinner(bool wasCpuWinner)
         {
-            if (wasCpuWiiner)
+            if (wasCpuWinner)
             {
                 Console.WriteLine("SORRY CPU WON THE GAME.");
-                Console.WriteLine("Cpu gameboard.");
-                DisplayGameBoard(_cpuPlayer.GetReferencesToMyGameBoard().GetArrayBoard(), true);
+                Console.WriteLine("Cpu gameboard:");
+                DisplayGameBoard(_cpuGameboard, true);
 
             }
             else
@@ -201,10 +198,30 @@ namespace BattleShips
                 Console.WriteLine("CONGRATULATIONS YOU HAVE WON THE GAME !!!");
             }
 
-
-
+            Console.WriteLine("Press any key to continue.");
+            Console.ReadKey();
+            Console.WriteLine("");
 
         }
+
+        private List<Ship> CreateListOFShips()
+        {
+            int shipCounter = 1;
+            List<Ship> list = new List<Ship>();
+
+            for (int i = GameRules.NumberOFBattleships; i != 0; i--)
+            {
+                list.Add(new Ship(GameRules.NameOfBattleship, GameRules.LengthOFBattleship, shipCounter++));
+            }
+
+            for (int i = GameRules.NumberOFDestroyers; i != 0; i--)
+            {
+                list.Add(new Ship(GameRules.NameOfDestroyer, GameRules.LengthOFDestroyer, shipCounter++));
+            }
+
+            return list;
+        }
+
 
     }
 }

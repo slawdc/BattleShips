@@ -5,115 +5,51 @@ namespace BattleShips
 {
     internal class HumanPlayer : Player
     {
-        private GameBoard _gameBoard;
-        private GameBoard _refToCpuBoard;
-        private List<Ship> _cpulistOfShips;
-        private List<Ship> _listOfShips;
-
+        public override int PlayerID { get; }
         private List<String> _columnIndexes;
 
-        public HumanPlayer()
+        public HumanPlayer(int playerID)
         {
-
-            _gameBoard = new GameBoard(GameRules.GameBoardNrOfRows, GameRules.GameBoardNrOfColumns);
-            _listOfShips = new List<Ship>();
-
+            PlayerID = playerID;          
             _columnIndexes = new List<String> { "A", "B", "C", "D", "E", "F", "G", "H", "I", "J" };
-
         }
-        public override void SetShips()
+        public override void SetShip(Ship ship, ref GameBoard gameBoard)
         {
-            SetBattleshipsOnBoard();
+            bool horizontal = false;
+            Coordinates playerCoordinates;
+            bool wasShipAddedToBoard = false;
+            string errorMessage = null;
 
-            SetDestroyersOnBoard();
-        }
+            Console.WriteLine(String.Format("Time to set your {0} ship, named: '{1}'", ship.ShipID, ship.ShipName));
 
-        public override int Shoot()
-        {
-            int hit = 0;
+            horizontal = GetInformationFromUserIfShipPositionISHorizontal();
 
-            int hitShipID = 0;
-
-            String displayMessage = ("Your shoot , input coordinates to shoot.");
-
-            Coordinates coordinates = GetCoordinatesFromPlayer(displayMessage);
-
-            _refToCpuBoard.UpdateArrayBoard(coordinates.Row, coordinates.Column);
-
-            foreach (Ship ship in _cpulistOfShips)
+            do
             {
-                if (!ship.IsShipDestroyed())
+                errorMessage = null;
+
+                Console.WriteLine(String.Format("Input initial coordinates, for : {0}.", ship.ShipName));
+
+                playerCoordinates = GetCoordinatesFromPlayer();
+
+                wasShipAddedToBoard = TrySetShipOnBoard(ref ship, ref gameBoard,  playerCoordinates,  horizontal, out  errorMessage);
+
+                if (errorMessage != null)
                 {
-                    hit = ship.wasShipHIt(coordinates.Row, coordinates.Column, out hitShipID);
-                    if (hit > 0)
-                    {
-                        break;
-                    }
-                }
-            }
-
-            return hit;
-
-        }
-        public override List<Ship> GetReferencesToMyShips()
-        {
-            return _listOfShips;
-        }
-
-        public override GameBoard GetReferencesToMyGameBoard()
-        {
-            return _gameBoard;
-        }
-        public override bool CheckIFGameOver()
-        {
-            bool gameOver = false;
-
-            int destroyedShipCounter = 0;
-
-            foreach (Ship ship in _cpulistOfShips)
-            {
-                if (ship.IsShipDestroyed())
-                {
-                    destroyedShipCounter++;
+                    Console.WriteLine(errorMessage);
                 }
 
-            }
-
-            if (destroyedShipCounter == _cpulistOfShips.Count)
-            {
-                gameOver = true;
-            }
-
-            return gameOver;
-
-        }
-        public void SetReferencesToCpuShips(List<Ship> cpulistOfShips)
-        {
-            _cpulistOfShips = cpulistOfShips;
+            } while (!wasShipAddedToBoard);
 
         }
 
-        public void SetReferencesToCpuBoard(GameBoard cpuBoard)
+        public override Coordinates Shoot()
         {
-            _refToCpuBoard = cpuBoard;
-        }
+            Console.WriteLine(String.Format("Input coordinates you want to attack"));
 
-        private void SetBattleshipsOnBoard()
-        {
-            int NumberOFBattleships = GameRules.NumberOFBattleships;
-            int LengthOFBattleship = GameRules.LengthOFBattleship;
-            string NameOfBattleship = GameRules.NameOfBattleship;
+            Coordinates coordinates = GetCoordinatesFromPlayer();
 
-            SetShipsOnBoard(NumberOFBattleships, LengthOFBattleship, NameOfBattleship);
-        }
-
-        private void SetDestroyersOnBoard()
-        {
-            int NumberOFDestroyers = GameRules.NumberOFDestroyers;
-            int LengthOFDestroyers = GameRules.LengthOFDestroyer;
-            string NameOfDestroyers = GameRules.NameOfDestroyer;
-
-            SetShipsOnBoard(NumberOFDestroyers, LengthOFDestroyers, NameOfDestroyers);
+            return coordinates;
         }
 
         private int CharToIntTranslation(String letter)
@@ -125,6 +61,7 @@ namespace BattleShips
                 if (chr == letter.ToUpper())
                 {
                     number = _columnIndexes.IndexOf(chr);
+                    break;
                 }
 
             }
@@ -136,20 +73,21 @@ namespace BattleShips
         {
             bool horizontal = false;
 
-            string input = "";
+            ConsoleKeyInfo input ;
 
             do
             {
                 Console.WriteLine();
-                Console.WriteLine(String.Format("Do you want to place your ship horizontal , press Y for YES or N for NO."));
+                Console.WriteLine(String.Format("Do you want to place your ship horizontal , press H for HORIZONTAL or V for VERTICAL."));
                 Console.WriteLine();
-                input = Console.ReadLine();
+                input = Console.ReadKey();
+                Console.WriteLine();
 
-                if (input.ToUpper() == "Y")
+                if (input.Key == ConsoleKey.H)
                 {
                     horizontal = true;
                 }
-                else if (input.ToUpper() == "N")
+                else if (input.Key == ConsoleKey.V)
                 {
                     horizontal = false;
                 }
@@ -158,11 +96,13 @@ namespace BattleShips
                     Console.WriteLine(String.Format("Your input was incorect. Try again"));
                 }
 
-            } while (input.ToUpper() != "Y" && input.ToUpper() != "N");
+                
+
+            } while (input.Key != ConsoleKey.H && input.Key != ConsoleKey.V);
 
             return horizontal;
         }
-        private Coordinates GetCoordinatesFromPlayer(String displayMessage)
+        private Coordinates GetCoordinatesFromPlayer()
         {
             Coordinates coordinates = null;
             string input = null;
@@ -170,10 +110,6 @@ namespace BattleShips
 
             do
             {
-                Console.WriteLine();
-                Console.WriteLine(String.Format(displayMessage));
-                Console.WriteLine();
-
                 input = Console.ReadLine();
 
                 coordinates = ChangeUserInputIntoCoordinates(input, out errorMessage);
@@ -217,7 +153,7 @@ namespace BattleShips
                 }
                 if (errorMessage == null)
                 {
-                    coordinates = new Coordinates(row - 1, column);
+                    coordinates = new Coordinates(row - 1, column, 0);
                 }
 
             }
@@ -230,170 +166,72 @@ namespace BattleShips
 
         }
 
-        private void SetShipsOnBoard(int numberOfShips, int shipLength, String shipName)
-        {
-            Coordinates coordinates = null;
-
-            int sumOfFields;
-            bool canShipBeplacedOnBoard = false;
-            bool horizontal = false;
-            bool shipSetProperly = false;
-            string errorMessage = null;
-            string displayMassgeForUser;
-            int shipNr = 1;
-
-            while (numberOfShips >= shipNr)
-            {
-                sumOfFields = 0;
-
-                Console.WriteLine(String.Format("Time to set your {0} {1}", shipNr, shipName));
-
-                horizontal = GetInformationFromUserIfShipPositionISHorizontal();
-
-                do
-                {
-                    shipSetProperly = false;
-
-                    errorMessage = null;
-
-                    displayMassgeForUser = String.Format("Input {0} start coordinates, for example 'A5' or 'a5', where A represnts column and 5 row number.", shipName);
-
-                    coordinates = GetCoordinatesFromPlayer(displayMassgeForUser);
-
-                    canShipBeplacedOnBoard = CheckIfShipCanBeAddToBoard(shipLength, coordinates, horizontal, out errorMessage);
-
-                    if (canShipBeplacedOnBoard)
-                    {
-                        _gameBoard.AddShipToBoard(coordinates.Row, coordinates.Column, shipLength, horizontal);
-                        _listOfShips.Add(new Ship(coordinates.Row, coordinates.Column, horizontal, shipName, shipLength, _listOfShips.Count + 1));
-                        shipSetProperly = true;
-                        shipNr++;
-
-                        Console.WriteLine(String.Format("Your {0} was set properlly.", shipName));
-                        DisplayGameBoard(_gameBoard.GetArrayBoard(), true);
-
-                    }
-
-                    if (errorMessage != null)
-                    {
-                        Console.WriteLine(errorMessage);
-                    }
-
-                } while (!shipSetProperly);
-
-            }
-
-        }
-
-        private bool CheckIfShipCanBeAddToBoard(int shipLength, Coordinates shipCoordinates, bool isShipPlacedHorizontal, out string errorMessage)
+        private bool TrySetShipOnBoard(ref Ship ship, ref GameBoard gameBoard, Coordinates playerCoordinates, bool horizontal, out string errorMessage)
         {
             int sumOfFields = 0;
             errorMessage = null;
-            bool shipCanBePlaced = true;
+            bool shipWasAddedTooBoard = true;
+            List<Coordinates> tempCoordinates = new List<Coordinates>();
 
-            if (isShipPlacedHorizontal)
+
+            if (horizontal)
             {
                 // Check if player didn't place ship out of boudaries
-                if (shipCoordinates.Column <= (GameRules.GameBoardNrOfColumns - shipLength))
+                if (playerCoordinates.Column <= (GameRules.GameBoardNrOfColumns - ship.Length))
                 {
-                    for (int i = 0; i < shipLength; i++)
+                    for (int i = 0; i < ship.Length; i++)
                     {
-                        sumOfFields += _gameBoard.GetArrayBoardValue(shipCoordinates.Row, shipCoordinates.Column + i);
+                        sumOfFields += gameBoard.GetBoardCoordiante(playerCoordinates.Row, playerCoordinates.Column + i).ShipID;
+                        tempCoordinates.Add(new Coordinates(playerCoordinates.Row, playerCoordinates.Column + i, ship.ShipID));
                     }
                 }
                 else
                 {
                     errorMessage = "You set your ship out of board.";
-                    shipCanBePlaced = false;
+                    shipWasAddedTooBoard = false;
                 }
 
             }
-            else
+            else // else vertical
             {
                 // Check if player didn't place ship out of boudaries
-                if (shipCoordinates.Row <= (GameRules.GameBoardNrOfRows - shipLength))
+                if (playerCoordinates.Row <= (GameRules.GameBoardNrOfRows - ship.Length))
                 {
-                    for (int i = 0; i < shipLength; i++)
+                    for (int i = 0; i < ship.Length; i++)
                     {
-                        sumOfFields += _gameBoard.GetArrayBoardValue(shipCoordinates.Row + i, shipCoordinates.Column);
+                        tempCoordinates.Add(new Coordinates(playerCoordinates.Row + i, playerCoordinates.Column, ship.ShipID));
+                        sumOfFields += gameBoard.GetBoardCoordiante(playerCoordinates.Row + i, playerCoordinates.Column).ShipID;
                     }
                 }
                 else
                 {
                     errorMessage = "You set your ship out of board.";
-                    shipCanBePlaced = false;
+                    shipWasAddedTooBoard = false;
                 }
 
             }
-            if (sumOfFields > 0)
+            if (sumOfFields == 0 && shipWasAddedTooBoard)
+            {
+                foreach (Coordinates coordinates in tempCoordinates)
+                {
+                    coordinates.ShipID = ship.ShipID;
+                    ship.AddCoordinates(coordinates);
+                    gameBoard.UpdateArrayBoardCoordinates(coordinates);
+                    
+                }
+
+                gameBoard.AddShipToList(ship);
+
+            }
+            else if (sumOfFields > 0)
             {
                 errorMessage = "You set ship with coolision with nother ship.";
-                shipCanBePlaced = false;
+                shipWasAddedTooBoard = false;
             }
 
-            return shipCanBePlaced;
+            return shipWasAddedTooBoard;
 
         }
-
-        public void DisplayGameBoard(int[,] arrayboard, bool displayShips)
-        {
-            Console.WriteLine();
-            Console.WriteLine("   A B C D E F G H I J");
-
-            for (int row = 0; row < arrayboard.GetLength(0); row++)
-            {
-
-                if (row == 9)
-                {
-                    Console.Write(row + 1 + " ");
-                }
-                else
-                {
-                    Console.Write(row + 1 + "  ");
-                }
-
-                for (int column = 0; column < arrayboard.GetLength(1); column++)
-                {
-                    if (arrayboard[row, column] == 0)
-                    {
-                        Console.Write("  ");
-
-                    }
-                    else if (arrayboard[row, column] == 1  )
-                    {
-                        if (displayShips)
-                        {
-                            Console.Write("O ");
-                        }
-                        else
-                        {
-                            Console.Write("  ");
-                        }
-
-
-                        
-                    }
-                    else if (arrayboard[row, column] == 2)
-                    {
-
-                        Console.Write("X ");
-                    }
-                    else if (arrayboard[row, column] == 3)
-                    {
-
-                        Console.Write(". ");
-                    }
-
-
-                }
-
-                Console.WriteLine();
-
-            }
-
-        }
-
-
 
     }
 }

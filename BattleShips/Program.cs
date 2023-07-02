@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BattleShips
 {
@@ -11,13 +7,13 @@ namespace BattleShips
     {
         static void Main(string[] args)
         {
-            string input = null;
+            ConsoleKeyInfo input;
 
             Console.WriteLine(String.Format("Instructions:"));
+            Console.WriteLine(String.Format("Inputing coordinates has form “A5”, where “A” is the column and “5” is the row, to specify a square to target."));
             Console.WriteLine(String.Format("O - ship position "));
             Console.WriteLine(String.Format("X - ship hit position "));
             Console.WriteLine(String.Format(". - hit missed "));
-
 
             string display = "Welcome to BattleShips, press S to Start new game or Q to quit game.";
 
@@ -26,14 +22,15 @@ namespace BattleShips
                 Console.WriteLine();
                 Console.WriteLine(String.Format(display));
                 Console.WriteLine();
-                input = Console.ReadLine();
 
-                if (input.ToUpper() == "S")
+                input = Console.ReadKey();
+                Console.WriteLine();
+                if (input.Key == ConsoleKey.S)
                 {
                     Game game = new Game();
                     game.GameLoop();
-            
-                }             
+
+                }
                 else
                 {
                     Console.WriteLine(String.Format("Your input was incorect. Try again."));
@@ -41,7 +38,7 @@ namespace BattleShips
 
                 display = "Press S to Start new game or Q to quit game.";
 
-            } while (input.ToUpper() != "Q");
+            } while (input.Key != ConsoleKey.Q);
 
         }
     }

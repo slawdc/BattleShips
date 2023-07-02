@@ -1,87 +1,55 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace BattleShips
 {
     internal class Ship
     {
-        private int _shipLength;
-        private List<Coordinates> listOfCoordinates;
+        private int _length;
         private string _shipName;
-        private bool _isShipDestroyed;
-        private int _shipId;
 
-        public Ship(int startRow, int startColumn, bool horizontal, string shipName, int shipLength, int shipID)
+        private int _shipId { get; }
+        private List<Coordinates> _shipsCoordinates;
+
+        public Ship(string shipName, int shipLength, int shipID)
         {
-            listOfCoordinates = new List<Coordinates>();
-
+            _shipsCoordinates = new List<Coordinates>();
             _shipId = shipID;
-
             _shipName = shipName;
+            _length = shipLength;
 
-            _shipLength = shipLength;
+        }
+        public int Length
+        {
+            get { return _length; }
 
-            if (horizontal)
-            {
-                for (int i = 0; i < _shipLength; i++)
-                {
-                    listOfCoordinates.Add(new Coordinates(startRow, startColumn + i));
-                }
-            }
-            else
-            {
-                for (int i = 0; i < _shipLength; i++)
-                {
-                    listOfCoordinates.Add(new Coordinates(startRow + i, startColumn));
-                }
-            }
+        }
+        public string ShipName
+        {
+            get { return _shipName; }
+
+        }
+        public int ShipID
+        {
+            get { return _shipId; }
         }
 
-        public int wasShipHIt(int row, int column, out int shipId)
+        public void AddCoordinates(Coordinates coordinates)
         {
-            int hit = 0;
-            shipId = 0;
-            int hitCounter = 0;
-
-            foreach (Coordinates coordinates in listOfCoordinates)
-            {
-                if (coordinates.Destroyed)
-                {
-                    hitCounter++;
-                }
-
-                if ((coordinates.Row == row && coordinates.Column == column) && !coordinates.Destroyed)
-                {
-                    coordinates.Destroyed = true;
-                    hitCounter++;
-                    hit = 1;
-                    shipId = _shipId;
-                }
-
-            }
-
-            if (hitCounter == _shipLength)
-            {
-                _isShipDestroyed = true;
-                hit = 2;
-            }
-
-            return hit;
-
+            _shipsCoordinates.Add(coordinates);
         }
 
         public bool IsShipDestroyed()
         {
-            return _isShipDestroyed;
+            bool isDestroyed = true;
 
-        }
-
-        public void DisplayNameAndCoordinates()
-        {
-            foreach (Coordinates coordinate in listOfCoordinates)
+            foreach (Coordinates coordinates in _shipsCoordinates)
             {
-                Console.WriteLine("Name: " + _shipName + " " + ", row: " + coordinate.Row + " , col: " + coordinate.Column);
+                if (!coordinates.Destroyed)
+
+                    isDestroyed = false;
             }
+
+            return isDestroyed;
 
         }
 
